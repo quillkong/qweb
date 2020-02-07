@@ -3,26 +3,292 @@
 <head>
   <meta charset="UTF-8">
   <!-- import CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+  <link rel="stylesheet" href="./src/components/index.css">
+  <link href="./src/components/mapbox-gl.css" rel="stylesheet" />
+  <style>
+  	body { margin: 0; padding: 0; }
+  	#map { height: 100vh;width: 100% }
+    .el-aside {border: 1px solid #eee;padding: 20px}
+    .el-main {padding:0}
+    .row {width: 100%}
+    .mapboxgl-ctrl-bottom-left {visibility: hidden;}
+    .mapboxgl-ctrl-bottom-right {visibility: hidden;}
+    .el-dialog.is-fullscreen {background-image: url('./src/assets/firstBackground.png'); background-size: cover}
+    .el-drawer.rtl { top: 10%; bottom: 10%; height: 80%;}
+    .el-drawer__body {padding: 20px}
+  </style>
 </head>
 <body>
   <div id="app">
-    <el-button @click="visible = true">Button</el-button>
-    <el-dialog :visible.sync="visible" title="Hello world">
-      <p>Try Element</p>
+    <el-dialog
+      :visible.sync="dialogVisible"
+      width="100%"
+      center
+      fullscreen
+      >
+      <span>
+      </span>
+      <span slot="footer" class="dialog-footer">
+        <el-image
+            style="width: 100px; height: 100px"
+            :src="'src/assets/logo.png'"
+            :fit="'fit'">
+        </el-image>
+        <h1>City Model</h1>
+        <div>
+          <p style="width: 400px; display: inline-block;text-align: justify" >{{intro}}</p>
+        </div>
+        <el-button @click="dialogVisible = false">Enter</el-button>
+      </span>
     </el-dialog>
+    <el-container >
+      <el-aside width="400px">
+        <!-- 标题行 -->
+        <div class="row" style="height:50px">
+          <el-image
+              style="width: 40px; height: 40px;float:left;"
+              :src="'src/assets/logo.png'"
+              :fit="'fit'">
+          </el-image>
+          <h1 style="float:left">City Model</h1>
+
+        </div>
+        <!-- 情景选择 -->
+        <div class="row">
+          <el-divider></el-divider>
+          <el-cascader
+            v-model="select_senario"
+            :options=list_senario
+            :props="{ expandTrigger: 'hover' }"
+            size = "small"
+            placeholder = "senario select"
+            @change="selectChange">
+          </el-cascader>
+          <p> discreption for sinario discreption for sinariodiscreption for sinariodiscreption for sinariodiscreption for sinariodiscreption for sinario</p>
+          <el-divider></el-divider>
+        </div>
+        <div class="row">
+          <el-select
+            v-model="select_output"
+            placeholder="output select"
+            size = "small"
+            @change="selectChange">
+            <el-option
+              v-for="item in list_output"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+              :disabled="item.disabled">
+            </el-option>
+          </el-select>
+          <el-select
+            v-model="select_year"
+            placeholder="year select"
+            size = "small"
+            @change="selectChange">
+            <el-option
+              v-for="item in list_year"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+              :disabled="item.disabled">
+            </el-option>
+          </el-select>
+        </div>
+      </el-aside>
+      <el-main >
+        <div id="map"></div>
+        <el-drawer
+          title="CityName"
+          :visible.sync="drawerToggle"
+          direction="rtl"
+          size="20%"
+          :with-header="false"
+          :modal="false"
+          :close="drawerColse">
+
+          <h1 > {{drawerData['name']}}</h1>
+           <el-table
+           :data="drawerData['table']"
+           stripe
+           border
+           height="250"
+           max-height="1000"
+           size="small">
+              <el-table-column property="prop" label="Index "></el-table-column>
+              <el-table-column property="00" label="2000"></el-table-column>
+              <el-table-column property="10" label="2010"></el-table-column>
+              <el-table-column property="15" label="2015"></el-table-column>
+            </el-table>
+        </el-drawer>
+      </el-main>
+    </el-container>
   </div>
 </body>
   <!-- import Vue before Element -->
-  <script src="https://unpkg.com/vue/dist/vue.js"></script>
-  <!-- import JavaScript -->
-  <script src="https://unpkg.com/element-ui/lib/index.js"></script>
+  <script src="./src/components/vue.js"></script>
+  <script src="./src/components/index.js"></script>
+  <script src="./src/components/mapbox-gl.js"></script>
+  <script src="./src/config.js"></script>
   <script>
-    new Vue({
+    var data = {
+      intro:introText,
+      src: 'src/assets/logo.png',
+      select_senario: [],
+      select_output:'',
+      select_year:'',
+      list_senario:option_senario,
+      list_output:option_output,
+      list_year:option_year,
+      dialogVisible:true,
+      select_layer:'',
+      drawerToggle:false,
+      drawerData:{}
+    }
+
+    var vm = new Vue({
       el: '#app',
-      data: function() {
-        return { visible: false }
+      data: data,
+      methods: {
+        selectChange(value) {
+          data.select_layer = data.select_senario[data.select_senario.length-1]+'_'+data.select_year+'_'+data.select_output
+        },
+        drawerColse(){
+          data.drawerToggle = false
+          // 地图对应关闭
+        }
       }
     })
+
+  // ----------mapbox part----------
+
+mapboxgl.accessToken = 'pk.eyJ1IjoicXVpbGxrb25nIiwiYSI6ImNrNDNybm0yNzAzZnQza24wZXhobmJjYXQifQ.iB1aaaPi1GwWrBJ36f6iwg';
+var map = new mapboxgl.Map({
+  container: 'map',
+  style: 'mapbox://styles/quillkong/ck604fr8s0fk31imvkvfnct5x'
+  // center: [-96, 37.8],
+  // zoom: 3
+});
+
+map.on('load', function() {
+    var myLayerId = "layerShp-8wenoe"
+    map.addSource('qLayer', {
+      type: 'vector',
+      url: 'mapbox://quillkong.4t9rizcw'
+    });
+    map.addLayer({
+      "id": "layerFill",
+      "source": "qLayer",
+      "source-layer": myLayerId,
+      "type": "fill",
+      "paint": {
+        "fill-outline-color":"#ffffff",
+        'fill-opacity': ['case',
+          ['boolean', ['feature-state', 'hover'], false],0.9, 0.7 ]
+      },
+      // "filter":["all", ["has", "d_00_Pop"]],
+      "layout": {"visibility":"none"}
+
+    })
+    map.addLayer({
+      "id": "layerLabel",
+      "source": "qLayer",
+      "source-layer": myLayerId,
+      "type": "symbol",
+      "paint": {
+        "text-opacity":
+        ['case',['boolean', ['feature-state', 'hover'], false],1,0]
+      },
+      "layout": {
+        "text-field": ["to-string",["get","Name"]]
+      }
+      // "layout": {"visibility":"none"}
+    })
+
+  // 高亮显示标签
+var clickedStateId = null
+var hoveredStateId = null
+map.on('mousemove', 'layerFill', function(e) {
+      if (e.features.length > 0) {
+        // 消除上一个hover状态
+        if (hoveredStateId) {
+            map.setFeatureState(
+              { source: e.features[0].source, id: hoveredStateId,sourceLayer:e.features[0].sourceLayer},
+              { hover: false }
+            );
+        }
+        hoveredStateId=e.features[0].id
+        map.setFeatureState(
+          { source: e.features[0].source, id: hoveredStateId ,sourceLayer:e.features[0].sourceLayer},
+          { hover: true }
+        );
+      }
+    });
+map.on('mouseleave', 'layerFill', function() {
+    map.removeFeatureState(
+      { source: "qLayer" ,sourceLayer:myLayerId}
+    )
+    hoveredStateId = null;
+    });
+
+// 点击弹窗
+map.on('click', 'layerFill', function(e) {
+    if (e.features.length > 0) {
+      data.drawerToggle=true
+      var d =e.features[0].properties
+      data.drawerData['name']=d['Name']
+      var tableListTemp ={}
+      option_output.forEach(function(item) {
+        a = {
+          prop: item['label'],
+          00:'',
+          10:'',
+          15:''
+        }
+        tableListTemp[item['value']]=a
+      })
+
+      for (var key in d){
+        var s = key.split('_')
+        if (s.length ==3 && s[0]==data.select_senario[data.select_senario.length-1]){
+              tableListTemp[s[2]][s[1]]=d[key]
+            }
+      }
+      var tableList = []
+      for (var key in tableListTemp){
+          tableList.push(tableListTemp[key])
+      }
+      data.drawerData['table']=tableList
+    }
+  })
+});
+
+vm.$watch('select_layer', function (newValue, oldValue) {
+    if (layerList[newValue]){
+      var layerMin = layerList[newValue][0]
+      var layerMax = layerList[newValue][1]
+      var layerStyle =[
+          "interpolate",["linear"],["get",newValue],
+          layerMin,"hsl(46, 92%, 87%)",
+          layerMax,"hsl(0, 79%, 45%)"
+        ]
+      map.setPaintProperty('layerFill','fill-color',layerStyle)
+      map.setLayoutProperty('layerFill','visibility','visible')
+      map.setLayoutProperty('layerLabel','visibility','visible')
+      map.setLayoutProperty('layerLabel',"text-field",["to-string",[ "concat", ["get","Name"], "\n", [ "get", newValue]]])
+    }
+    else {
+      console.log('没有图层')
+      map.setLayoutProperty('layerFill','visibility','none')
+      map.setLayoutProperty('layerLabel','visibility','none')
+    }
+
+})
+
+
+
+
   </script>
+
+
 </html>
